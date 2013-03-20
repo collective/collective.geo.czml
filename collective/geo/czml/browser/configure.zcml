@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:five="http://namespaces.zope.org/five"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    i18n_domain="collective.geo.czml">
+
+  <include package="Products.CMFCore" file="permissions.zcml" />
+
+  <browser:page
+      for="collective.geo.geographer.interfaces.IGeoreferenceable"
+      name="czml.json"
+      class=".czmlview.CzmlDocument"
+      layer = "..interfaces.IGeoCzmlLayer"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      for="Products.CMFCore.interfaces.IFolderish"
+      name="czml.json"
+      class=".czmlview.CzmlFolderDocument"
+      layer = "..interfaces.IGeoCzmlLayer"
+      permission="zope2.View"
+      />
+
+  <browser:page
+      for="Products.ATContentTypes.interface.IATTopic"
+      name="czml.json"
+      layer = "..interfaces.IGeoCzmlLayer"
+      class=".czmlview.CzmlTopicDocument"
+      permission="zope2.View"
+      />
+
+
+</configure>
