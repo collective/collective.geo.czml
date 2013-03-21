@@ -3,6 +3,7 @@
     xmlns="http://namespaces.zope.org/zope"
     xmlns:five="http://namespaces.zope.org/five"
     xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:zcml="http://namespaces.zope.org/zcml"
     xmlns:i18n="http://namespaces.zope.org/i18n"
     i18n_domain="collective.geo.czml">
 
@@ -31,6 +32,16 @@
       class=".czmlview.CzmlTopicDocument"
       permission="zope2.View"
       />
+
+  <!-- New style collections -->
+  <browser:page
+      zcml:condition="installed plone.app.collection"
+      for="plone.app.collection.interfaces.ICollection"
+      name="czml.json"
+      class=".czmlview.CzmlFolderDocument"
+      layer = "..interfaces.IGeoCzmlLayer"
+      permission="zope2.View"/>
+
 
 
 </configure>
