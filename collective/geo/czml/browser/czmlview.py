@@ -135,7 +135,7 @@ class CzmlFolderDocument(CzmlBaseDocument):
                     packet = czml.CZMLPacket(id=brain.UID)
                     label = czml.Label()
                     label.text = brain.Title.decode('UTF-8')
-                    label.show = False
+                    label.show = True
                     packet.label = label
                     if geom['type'] == 'Point':
                         #if self.styles.get('use_custom_styles', False):
