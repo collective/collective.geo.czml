@@ -138,15 +138,20 @@ class CzmlFolderDocument(CzmlBaseDocument):
                     label.show = True
                     packet.label = label
                     if geom['type'] == 'Point':
-                        #if self.styles.get('use_custom_styles', False):
-                        billboard = czml.Billboard()
-                        billboard.image = get_marker_image(
-                            self.context, self.styles['marker_image'])
-                        billboard.scale = self.styles['marker_image_size']
-                        billboard.show = True
-                        packet.billboard = billboard
-                        #else:
-                        #    pass #XXX use Point here
+                        if self.styles.get('use_custom_styles', False):
+                            billboard = czml.Billboard()
+                            billboard.image = get_marker_image(
+                                self.context, self.styles['marker_image'])
+                            billboard.scale = self.styles['marker_image_size']
+                            billboard.show = True
+                            packet.billboard = billboard
+                        else:
+                            point = czml.Point()
+                            point.color = {'rgba': [0, 255, 127, 55]}
+                            point.outlineColor = {'rgba': [255, 127, 00, 155]}
+                            point.pixelSize = 10
+                            point.outlineWidth = 2
+
                         position = czml.Position()
                         position.cartesian = geom
                         packet.position = position
