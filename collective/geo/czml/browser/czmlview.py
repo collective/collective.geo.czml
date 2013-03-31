@@ -151,6 +151,7 @@ class CzmlFolderDocument(CzmlBaseDocument):
                             point.outlineColor = {'rgba': [255, 127, 00, 155]}
                             point.pixelSize = 10
                             point.outlineWidth = 2
+                            point.show = True
                             packet.point = point
 
                         position = czml.Position()
