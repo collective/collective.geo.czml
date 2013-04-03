@@ -37,7 +37,6 @@ class CzmlBaseDocument(BrowserView):
     defaultstyles = None
     styles = None
 
-
     def __init__(self, context, request):
         self.context = context
         self.request = request
@@ -48,39 +47,27 @@ class CzmlBaseDocument(BrowserView):
     def portal(self):
         return getToolByName(self.context, 'portal_url').getPortalObject()
 
-    def normalize_color(self, color):
-        if color:
-            if color.startswith('#'):
-                color = color[1:]
-            if len(color)==3 or len(color)==4:
-                color =''.join([b*2 for b in color])
-            if len(color)==6:
-                color = color +'3c'
-            if len(color)==8:
-                return color.upper()
-        return 'AABBCCDD'
-
-    def _get_style(self, geo_type):
+    def _get_style(self):
+        def to_dict(rp):
+            styled = {}
+            for k in rp.__schema__.names():
+                styled[k] = getattr(rp, k)
+            return styled
         style= {}
-        if self.styles:
-            fill = self.normalize_color(self.styles['polygoncolor'])
-            stroke = self.normalize_color(self.styles['linecolor'])
+        if not self.styles:
+            styles = to_dict(self.defaultstyles)
+        else:
             if self.styles['use_custom_styles']:
-                if geo_type['type'].endswith('Polygon'):
-                    style['fill'] = fill
-                    style['stroke'] = stroke
-                    style['width'] = self.styles['linewidth']
-                elif geo_type['type'].endswith('LineString'):
-                    style['stroke'] = stroke
-                    style['width'] = self.styles['linewidth']
-                elif geo_type['type'].endswith('Point'):
-                    img = self.styles['marker_image']
-                    style['fill'] = fill
-                    style['stroke'] =stroke
-                    style['width'] = self.styles['linewidth']
-                    if img.startswith('string:${portal_url}'):
-                        img = self.portal.absolute_url() + img[20:]
-                    style['image']= img
+                styles = self.styles
+            else:
+                styles = to_dict(self.defaultstyles)
+        style['fill'] = czml.hexcolor_to_rgba(styles['polygoncolor'])
+        style['stroke'] = czml.hexcolor_to_rgba(styles['linecolor'])
+        style['width'] = styles['linewidth']
+        img = get_marker_image( self.context,
+                    styles['marker_image'])
+        style['image']= img
+        style['scale'] = styles['marker_image_size']
         return style
 
     @property
@@ -89,9 +76,6 @@ class CzmlBaseDocument(BrowserView):
 
 
 class CzmlDocument(CzmlBaseDocument):
-
-
-
 
     def __call__(self):
         self.request.RESPONSE.setHeader('Content-Type','application/json; charset=utf-8')
@@ -132,28 +116,27 @@ class CzmlFolderDocument(CzmlBaseDocument):
                 geom = { 'type': brain.zgeo_geometry['type'],
                             'coordinates': brain.zgeo_geometry['coordinates']}
                 if geom['coordinates']:
+                    style = self._get_style()
                     packet = czml.CZMLPacket(id=brain.UID)
                     label = czml.Label()
                     label.text = brain.Title.decode('UTF-8')
                     label.show = True
                     packet.label = label
                     if geom['type'] == 'Point':
-                        if self.styles.get('use_custom_styles', False):
+                        if style['image']:
                             billboard = czml.Billboard()
-                            billboard.image = get_marker_image(
-                                self.context, self.styles['marker_image'])
-                            billboard.scale = self.styles['marker_image_size']
+                            billboard.image = style['image']
+                            billboard.scale = style['scale']
                             billboard.show = True
                             packet.billboard = billboard
                         else:
                             point = czml.Point()
-                            point.color = {'rgba': [0, 255, 127, 55]}
-                            point.outlineColor = {'rgba': [255, 127, 00, 155]}
-                            point.pixelSize = 10
-                            point.outlineWidth = 2
+                            point.color = {'rgba': style['fill']}
+                            point.outlineColor = {'rgba': style['stroke']}
+                            point.pixelSize = 20 * style['scale']
+                            point.outlineWidth = style['width']
                             point.show = True
                             packet.point = point
-
                         position = czml.Position()
                         position.cartographicDegrees = geom
                         packet.position = position
