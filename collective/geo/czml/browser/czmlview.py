@@ -118,11 +118,11 @@ class CzmlFolderDocument(CzmlBaseDocument):
                 if geom['coordinates']:
                     style = self._get_style()
                     packet = czml.CZMLPacket(id=brain.UID)
-                    label = czml.Label()
-                    label.text = brain.Title.decode('UTF-8')
-                    label.show = True
-                    packet.label = label
                     if geom['type'] == 'Point':
+                        label = czml.Label()
+                        label.text = brain.Title.decode('UTF-8')
+                        label.show = True
+                        packet.label = label
                         if style['image']:
                             billboard = czml.Billboard()
                             billboard.image = style['image']
@@ -140,7 +140,17 @@ class CzmlFolderDocument(CzmlBaseDocument):
                         position = czml.Position()
                         position.cartographicDegrees = geom
                         packet.position = position
-
+                    elif geom['type'] == 'LineString':
+                        pl = czml.Polyline()
+                        pl.color = {'rgba': style['fill']}
+                        pl.outlineColor = {'rgba': style['stroke']}
+                        pl.width = style['width'] * style['scale']
+                        pl.outlineWidth = style['width']
+                        pl.show = True
+                        v = czml.VertexPositions()
+                        v.cartographicDegrees = geom
+                        packet.vertexPositions = v
+                        packet.polyline = pl
                     json_result.append(packet)
 
         self.request.RESPONSE.setHeader('Content-Type','application/json; charset=utf-8')
