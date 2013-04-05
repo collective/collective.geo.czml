@@ -108,6 +108,50 @@ class CzmlFolderDocument(CzmlBaseDocument):
     def get_brains(self):
         return self.context.getFolderContents()
 
+    def _packet(self, uid, geom, title):
+        style = self._get_style()
+        packet = czml.CZMLPacket(id=uid)
+        label = czml.Label()
+        label.text = title
+        label.show = True
+        packet.label = label
+        if geom.__geo_interface__['type'] == 'Point':
+            if style['image']:
+                billboard = czml.Billboard()
+                billboard.image = style['image']
+                billboard.scale = style['scale']
+                billboard.show = True
+                packet.billboard = billboard
+            else:
+                point = czml.Point()
+                point.color = {'rgba': style['fill']}
+                point.outlineColor = {'rgba': style['stroke']}
+                point.pixelSize = 20 * style['scale']
+                point.outlineWidth = style['width']
+                point.show = True
+                packet.point = point
+            position = czml.Position()
+            position.cartographicDegrees = geom
+            packet.position = position
+        elif geom.__geo_interface__['type'] == 'LineString':
+            pl = czml.Polyline()
+            pl.color = {'rgba': style['fill']}
+            pl.outlineColor = {'rgba': style['stroke']}
+            pl.width = style['width'] * style['scale']
+            pl.outlineWidth = style['width']
+            pl.show = True
+            v = czml.VertexPositions()
+            v.cartographicDegrees = geom
+            packet.vertexPositions = v
+            packet.polyline = pl
+        elif geom.__geo_interface__['type'] == 'Polygon':
+            pol = czml.Polygon( color = {'rgba': style['fill']})
+            v = czml.VertexPositions()
+            v.cartographicDegrees = geom
+            packet.vertexPositions = v
+            packet.polygon = pol
+        return packet
+
     def __call__(self):
         json_result = czml.CZML()
         for brain in self.get_brains():
@@ -116,49 +160,17 @@ class CzmlFolderDocument(CzmlBaseDocument):
                 geom = { 'type': brain.zgeo_geometry['type'],
                             'coordinates': brain.zgeo_geometry['coordinates']}
                 if geom['coordinates']:
-                    style = self._get_style()
-                    packet = czml.CZMLPacket(id=brain.UID)
-                    label = czml.Label()
-                    label.text = brain.Title.decode('UTF-8')
-                    label.show = True
-                    packet.label = label
-                    if geom['type'] == 'Point':
-                        if style['image']:
-                            billboard = czml.Billboard()
-                            billboard.image = style['image']
-                            billboard.scale = style['scale']
-                            billboard.show = True
-                            packet.billboard = billboard
-                        else:
-                            point = czml.Point()
-                            point.color = {'rgba': style['fill']}
-                            point.outlineColor = {'rgba': style['stroke']}
-                            point.pixelSize = 20 * style['scale']
-                            point.outlineWidth = style['width']
-                            point.show = True
-                            packet.point = point
-                        position = czml.Position()
-                        position.cartographicDegrees = geom
-                        packet.position = position
-                    elif geom['type'] == 'LineString':
-                        pl = czml.Polyline()
-                        pl.color = {'rgba': style['fill']}
-                        pl.outlineColor = {'rgba': style['stroke']}
-                        pl.width = style['width'] * style['scale']
-                        pl.outlineWidth = style['width']
-                        pl.show = True
-                        v = czml.VertexPositions()
-                        v.cartographicDegrees = geom
-                        packet.vertexPositions = v
-                        packet.polyline = pl
-                    elif geom['type'] == 'Polygon':
-                        pol = czml.Polygon( color = {'rgba': style['fill']})
-                        v = czml.VertexPositions()
-                        v.cartographicDegrees = geom
-                        packet.vertexPositions = v
-                        packet.polygon = pol
-
-                    json_result.append(packet)
+                    shape = asShape(geom)
+                    if shape.__geo_interface__['type'].startswith('Multi'):
+                        i = 0
+                        for g in shape.geoms:
+                            i+=1
+                            uid = brain.UID + '-' + str(i)
+                            packet = self._packet(uid, g, brain.Title.decode('UTF-8'))
+                            json_result.append(packet)
+                    else:
+                        packet = self._packet(brain.UID, shape, brain.Title.decode('UTF-8'))
+                        json_result.append(packet)
 
         self.request.RESPONSE.setHeader('Content-Type','application/json; charset=utf-8')
         return json_result.dumps()
